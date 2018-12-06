@@ -87,13 +87,9 @@
     display: block;
     clear: both;
   }
-  
-  
-  
   main .aside {
     float: left;
   }
-  
   main .aside > figure{
     width: 42vh;
     height: 42vh;
@@ -178,6 +174,7 @@
     transition: width .8s;
     background-color: #fff;
     border-radius: .2vh;
+    /* transition: width .8s */
   }
   
   main .author {

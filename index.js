@@ -109,52 +109,138 @@ var Footer = {
   }
 }
 
-
-
-
-
 var Fm ={
   init:function(){
-    this.bind()
-    this.$container = $('.page-music')
+    this.$container = $('#page-music')
     this.audio = new Audio()
     this.audio.autoplay = true
+    this.bind()
   },
-  bind:function(){
+  bind: function(){
     var that = this
-    EventCenter.on('select-albumn',function(e,channelObj){
+    EventCenter.on('select-albumn', function(e, channelObj){
+      console.log('select ', channelObj)
       that.channelId = channelObj.channelId
       that.channelName = channelObj.channelName
-      console.log('select',channelObj)
       that.loadMusic(function(){
         that.setMusic()
-      })      
+      })
     })
-    this.$container.find('.btn-play').on('click',function(){
-      
+    //暂停&播放
+    this.$container.find('.btn-play').on('click', function(){
+      var $btn = $(this)
+      if($btn.hasClass('icon-pause')){
+        $btn.removeClass('icon-pause').addClass('icon-play')
+        that.audio.pause()
+      }else{
+        $btn.removeClass('icon-play').addClass('icon-pause')
+        that.audio.play()
+      }
+    })
+    //下一曲
+    this.$container.find('.btn-next').on('click',function(){
+      that.loadMusic(function(){
+        that.setMusic()
+      })
+    })
+    //
+    this.audio.addEventListener('play',function(){
+      // console.log('play')
+      clearInterval(that.statusClock)
+      that.statusClock = setInterval(function(){
+        that.updataStatus()
+      },1000)
+    })
+    this.audio.addEventListener('pause',function(){
+      clearInterval(that.statusClock)
+      // console.log('pause')
     })
   },
-  loadMusic(callbcak){
-    // console.log('loadMusic.....')
+  //加载音乐
+  loadMusic(){
+    // console.log('loadMusic...')
     var that = this
-    $.getJSON('//jirenguapi.applinzi.com/fm/getSong.php',{
-      channel:this.channelId
-    }).done(function(ret){
-      that.song = ret['song'][0]
-      callbcak()
+    $.getJSON('//jirenguapi.applinzi.com/fm/getSong.php',{channel:this.channelId})
+      .done(function(ret){
+        console.log(ret)
+        that.song = ret['song'][0]
+        that.setMusic()
+        that.loadLyric()
     })
   },
+  //设置歌词(分割歌词)
+  loadLyric(){
+    var that = this
+    $.getJSON('//jirenguapi.applinzi.com/fm/getLyric.php',{sid:this.song.sid})
+      .done(function(ret){
+        // console.log(ret.lyric)
+        var lyric = ret.lyric
+        var lyricObj = {}
+        lyric.split('\n').forEach(function(line){
+          var times = line.match(/\d{2}:\d{2}/g)     //定义歌曲时间
+          var str = line.replace(/\[.+?\]/g,'')      //定义歌词内容
+          if(Array.isArray(times)){         // timer在匹配的过程中有可能不是一个数组，有些行是空字符串，空格
+            times.forEach(function(time){
+              lyricObj[time] = str
+            })
+          }
+        })
+        that.lyricObj = lyricObj
+        // console.log(lyricObj)
+    })
+  },
+  // 设置页面背景图、标题、作者、标签、初始化页面播放
   setMusic(){
-    // console.log('set music...')
-    // console.log(this.song)
+    console.log(this.song)
     this.audio.src = this.song.url
     $('.bg').css('background-image', 'url('+this.song.picture+')')
     this.$container.find('.aside figure').css('background-image', 'url('+this.song.picture+')')
     this.$container.find('.detail h2').text(this.song.title)
     this.$container.find('.detail .author').text(this.song.artist)
     this.$container.find('.tag').text(this.channelName)
-    // this.$container.find('.btn-play').removeClass('icon-play').addClass('icon-pause')
+    this.$container.find('.btn-play').removeClass('icon-play').addClass('icon-pause')
+  },
+    
+  updataStatus(){
+    //设置歌曲时间
+    var min = Math.floor(this.audio.currentTime/60)
+    var sec = Math.floor(this.audio.currentTime%60)+''
+    sec = sec.length === 2?sec:'0'+ sec
+    this.$container.find('.current-time').text(min+':'+sec)
+    //设置歌曲进度条
+    this.$container.find('.bar-progress').css('width',this.audio.currentTime / this.audio.duration * 100 + '%')
+    // 设置每行歌词显示
+    // console.log(this.lyricObj['0' + min +':'+ sec])
+    var line =this.lyricObj['0' + min +':'+ sec]
+    if(line){
+      this.$container.find('.lyric p').text(line).boomText()
+    }
   }
 }
+//设置歌词滚动样式
+$.fn.boomText = function(type){
+  type = type || 'fadeOutLeftBig'
+  // console.log(type)
+  this.html(function(){
+    var arr = $(this).text()
+    .split('').map(function(word){
+        return '<span dispaly:"inline-block;opacity = 0">'+ word + '</span>'
+    })
+    return arr.join('')
+  })
+  var index = 0
+  var $boomTexts = $(this).find('span')
+  var clock = setInterval(function(){
+    $boomTexts.eq(index).addClass('animated ' + type)
+    index++
+    if(index >= $boomTexts.length){
+      clearInterval(clock)
+    }
+  }, 300)
+}
+$('p').boomText('fadeOutLeftBig')
 Footer.init()
 Fm.init()
+
+
+

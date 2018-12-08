@@ -203,8 +203,8 @@ var Fm ={
     
   updataStatus(){
     //设置歌曲时间
-    var min = Math.floor(this.audio.currentTime/60)
-    var sec = Math.floor(this.audio.currentTime%60)+''
+    var min = Math.floor(this.audio.currentTime/60) + ''
+    var sec = Math.floor(this.audio.currentTime%60) + ''
     sec = sec.length === 2?sec:'0'+ sec
     this.$container.find('.current-time').text(min+':'+sec)
     //设置歌曲进度条
@@ -239,8 +239,7 @@ $.fn.boomText = function(type){
   }, 300)
 }
 $('p').boomText('fadeOutLeftBig')
+
+
 Footer.init()
 Fm.init()
-
-
-
